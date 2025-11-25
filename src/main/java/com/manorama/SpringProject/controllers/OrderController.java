@@ -1,7 +1,6 @@
 package com.manorama.SpringProject.controllers;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -52,8 +51,8 @@ public class OrderController {
 	}
 
 	@GetMapping("/user/{id}")
-	public Optional<Orders> getOrdersByUser(@PathVariable Long id) {
-		return orderService.getOrderTest(id);
+	public List<Orders> getOrdersByUser(@PathVariable Long id) {
+		return orderService.getOrdersByUser(id);
 	}
 
 	@DeleteMapping("/{id}")
@@ -80,6 +79,11 @@ public class OrderController {
 	@GetMapping("/admin/today")
 	public ResponseEntity getDailyAdminOrders() {
 		return orderService.getDailyAdminOrders();
+	}
+
+	@PostMapping("/admin/approve")
+	public ResponseEntity<Orders> approveOrder(@RequestParam long order_id) {
+		return orderService.approveOrder(order_id);
 	}
 
 	@GetMapping("/summary")

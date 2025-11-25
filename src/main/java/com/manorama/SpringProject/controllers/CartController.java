@@ -37,9 +37,19 @@ public class CartController {
 		return cartService.getCartItemsById(user_id);
 	}
 
+	@GetMapping("/admin")
+	public ResponseEntity getAllCarts() {
+		return cartService.getAllCarts();
+	}
+
 	@GetMapping("/checkout")
 	public ResponseEntity cartCheckout(@RequestParam long user_id) {
 		return cartService.createCheckout(user_id);
+	}
+
+	@PostMapping("/admin/checkout")
+	public ResponseEntity adminCheckout(@RequestParam long user_id) {
+		return cartService.adminCheckout(user_id);
 	}
 
 	@PostMapping

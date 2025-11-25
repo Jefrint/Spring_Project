@@ -36,4 +36,7 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
 	@Query("from Orders s where DATE(s.date) >= :start_date and DATE(s.date) <= :end_date and s.user_id =:user_id and s.paymentStatus='success' order by date desc")
 	public List<Orders> findAllBetweenDates(@Param("start_date") Date start_date, @Param("end_date") Date last_date,
 			@Param("user_id") long user_id);
+
+	@Query("from Orders o where o.user_id = :user_id order by o.date desc")
+	public List<Orders> findAllByUserId(@Param("user_id") long user_id);
 }

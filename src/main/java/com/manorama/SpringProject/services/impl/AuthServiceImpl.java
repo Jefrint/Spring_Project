@@ -56,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
 		UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
 				loginDto.getUsernameOrEmail(), loginDto.getPassword());
 
-		Optional<User> user = userRepository.findByUsername(loginDto.getUsernameOrEmail());
+		Optional<User> user = userRepository.findByUsernameOrEmail(loginDto.getUsernameOrEmail(), loginDto.getUsernameOrEmail());
 		if (user.isPresent()) {
 			Authentication authentication = authenticationManager.authenticate(auth);
 			String token = jwtTokenProvider.generateToken(authentication);
@@ -72,10 +72,24 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public ResponseEntity register(RegisterDto registerDto) {
+		// validate inputs
+		if (registerDto.getUsername() == null || registerDto.getUsername().isEmpty()) {
+			return ResponseEntity.unprocessableEntity().body("username is required");
+		}
+		if (registerDto.getName() == null || registerDto.getName().isEmpty()) {
+			return ResponseEntity.unprocessableEntity().body("name is required");
+		}
+		if (registerDto.getEmail() == null || registerDto.getEmail().isEmpty()) {
+			return ResponseEntity.unprocessableEntity().body("email is required");
+		}
 
-		// add check for username exists in database
-
-		// add check for email exists in database
+		// check duplicates
+		if (userRepository.findByUsername(registerDto.getUsername()).isPresent()) {
+			return ResponseEntity.status(409).body("username already exists");
+		}
+		if (userRepository.findByEmail(registerDto.getEmail()).isPresent()) {
+			return ResponseEntity.status(409).body("email already exists");
+		}
 
 		try {
 			User user = new User();
@@ -86,7 +100,12 @@ public class AuthServiceImpl implements AuthService {
 			user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
 
 			Set<Role> roles = new HashSet<>();
-			Role userRole = roleRepository.findByName("ROLE_USER").get();
+			// Ensure default role exists; create if missing to avoid NoSuchElementException
+			Role userRole = roleRepository.findByName("ROLE_USER").orElseGet(() -> {
+				Role newRole = new Role();
+				newRole.setName("ROLE_USER");
+				return roleRepository.save(newRole);
+			});
 			roles.add(userRole);
 			user.setRoles(roles);
 

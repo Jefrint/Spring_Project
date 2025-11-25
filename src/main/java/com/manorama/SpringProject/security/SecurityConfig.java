@@ -51,13 +51,21 @@ public class SecurityConfig {
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
 		http.csrf().disable()
-				.authorizeHttpRequests((authorize) -> authorize.antMatchers(HttpMethod.POST, "/api/items/")
-						.hasRole("ROLE_ADMIN").antMatchers("/api/auth/**").permitAll()
-
-						.anyRequest().authenticated()
-
-				).exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+			.authorizeHttpRequests((authorize) -> authorize
+				// Allow anyone to fetch items
+				.requestMatchers(HttpMethod.GET, "/api/items/**").permitAll()
+				// Only ADMIN can add items
+				.requestMatchers(HttpMethod.POST, "/api/items").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.POST, "/api/items/add").hasRole("ADMIN")
+				// Auth endpoints are public
+				.requestMatchers("/api/auth/**").permitAll()
+				// Admin-only order endpoints
+				.requestMatchers("/api/orders/admin/**").hasRole("ADMIN")
+				.requestMatchers("/api/cart/admin/**").hasRole("ADMIN")
+				// Everyone else needs to be authenticated
+				.anyRequest().authenticated()
+			).exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
 		http.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

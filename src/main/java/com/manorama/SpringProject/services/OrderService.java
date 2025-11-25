@@ -7,7 +7,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +51,8 @@ public class OrderService {
 		return orderRepository.findAll();
 	}
 
-	public Optional<Orders> getOrdersByUser(Long id) {
-		return orderRepository.findById(id);
+	public List<Orders> getOrdersByUser(Long id) {
+		return orderRepository.findAllByUserId(id);
 	}
 
 	public void createOrder(Orders order) {
@@ -68,7 +68,11 @@ public class OrderService {
 	}
 
 	public ResponseEntity createCheckout(Long id) {
-		List<OrderItems> ordItems = orderItemRepository.findAllByOrders(orderRepository.findById(id).get());
+		Optional<Orders> maybeOrder = orderRepository.findById(id);
+		if (maybeOrder.isEmpty()) {
+			return ResponseEntity.notFound().build();
+		}
+		List<OrderItems> ordItems = orderItemRepository.findAllByOrders(maybeOrder.get());
 		float totalAmt = 0;
 		for (OrderItems ordItem : ordItems) {
 			totalAmt += ordItem.getItems().getPrice() * ordItem.getQuantity();
@@ -87,8 +91,7 @@ public class OrderService {
 	}
 
 	public Optional<Orders> getOrderTest(Long orderId) {
-		Optional<Orders> order = orderRepository.findById(orderId);
-		return order;
+		return orderRepository.findById(orderId);
 	}
 
 	@Transactional
@@ -103,6 +106,7 @@ public class OrderService {
 				orderItemsToSave.add(orderItem);
 			});
 		}
+		orderItemRepository.saveAll(orderItemsToSave);
 		return ResponseEntity.ok(savedOrder);
 	}
 
@@ -132,6 +136,17 @@ public class OrderService {
 		return ResponseEntity.ok(orderRepository.findAllByDate(new Date()));
 	}
 
+	public ResponseEntity<Orders> approveOrder(long order_id) {
+		Optional<Orders> maybeOrder = orderRepository.findById(order_id);
+		if (maybeOrder.isEmpty()) {
+			return ResponseEntity.status(404).body(null);
+		}
+		Orders ord = maybeOrder.get();
+		ord.setStatus("approved");
+		orderRepository.save(ord);
+		return ResponseEntity.ok(ord);
+	}
+
 	public ResponseEntity getSummary(long user_id) {
 		MonthlySummary ms = orderRepository.userSummary(user_id);
 		DailySummary ds = orderRepository.userDailySummary(user_id);
@@ -148,18 +163,22 @@ public class OrderService {
 
 	public ResponseEntity<Object> deleteOrderItems(Long order_id, Long item_id) {
 		try {
-			List<OrderItems> ot = orderItemRepository.findAllByOrders(orderRepository.findById(order_id).get());
+			Optional<Orders> maybeOrder = orderRepository.findById(order_id);
+			if (maybeOrder.isEmpty()) {
+				return ResponseEntity.status(404).body("order not found");
+			}
+			List<OrderItems> ot = orderItemRepository.findAllByOrders(maybeOrder.get());
 			for (OrderItems ordItem : ot) {
 				if (ordItem.getItems().getId() == item_id) {
 					orderItemRepository.deleteById(ordItem.getId());
 				}
 			}
-			if (orderRepository.findById(order_id).get().getItems().isEmpty()) {
+			if (maybeOrder.get().getItems().isEmpty()) {
 				orderRepository.deleteById(order_id);
 				return ResponseEntity.ok("order was empty so order has been deleted");
 
 			}
-			return ResponseEntity.ok(orderRepository.findById(order_id).get());
+			return ResponseEntity.ok(maybeOrder.get());
 		} catch (NoSuchElementException ne) {
 			logger.error("failed to remove item: {}", ne.getMessage());
 			return ResponseEntity.status(422).body("no such item exists");
@@ -172,7 +191,11 @@ public class OrderService {
 	public ResponseEntity updateOrderItems(long order_id, long item_id, int quantity) {
 
 		try {
-			List<OrderItems> ot = orderItemRepository.findAllByOrders(orderRepository.findById(order_id).get());
+			Optional<Orders> maybeOrder = orderRepository.findById(order_id);
+			if (maybeOrder.isEmpty()) {
+				return ResponseEntity.status(404).body("order not found");
+			}
+			List<OrderItems> ot = orderItemRepository.findAllByOrders(maybeOrder.get());
 			for (OrderItems ordItem : ot) {
 				if (ordItem.getItems().getId() == item_id) {
 					ordItem.setQuantity(quantity);

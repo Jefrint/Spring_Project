@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +35,11 @@ public class CartService {
 	public ResponseEntity getCartItemsById(long id) {
 		return ResponseEntity.ok(cartRepository.findAllByuserId(id));
 	}
+    
+	// Admin method - get all carts in system
+	public ResponseEntity getAllCarts() {
+		return ResponseEntity.ok(cartRepository.findAll());
+	}
 
 	@Transactional
 	public ResponseEntity createCheckout(long user_id) {
@@ -46,7 +51,12 @@ public class CartService {
 		OrderModel orders = new OrderModel(cartItems.get(0).getCategory(), user_id, items);
 		cartRepository.deleteAllByuserId(user_id);
 		return orderService.createOrderFromCart(orders);
-//		return ResponseEntity.ok(order);
+	}
+        
+	// Admin method - create checkout for a user's cart
+	
+	public ResponseEntity adminCheckout(long user_id) {
+		return createCheckout(user_id);
 	}
 
 	public ResponseEntity addItemToCart(Cart cart) {
