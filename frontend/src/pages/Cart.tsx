@@ -41,7 +41,7 @@ const Cart: React.FC = () => {
 
   const updateQuantity = async (item: CartItem, qty: number) => {
     const newCart = items.map(i => i.id === item.id ? { ...i, quantity: qty } : i)
-    await api.put('/cart', newCart.map(i => ({...i})))
+    await api.put('/cart', newCart.map(i => ({ ...i })))
     await loadCart()
   }
 
@@ -52,26 +52,131 @@ const Cart: React.FC = () => {
     await loadCart()
   }
 
+  const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
+
   return (
-    <div>
-      <h2>Cart</h2>
+    <div className="container py-4">
+
+      <h2 className="fw-bold mb-4">🛒 Your Cart</h2>
+
       {error && <div className="alert alert-danger">{error}</div>}
-      {items.length === 0 && <p>Cart is empty</p>}
-      <ul className="list-group">
-        {items.map(item => (
-          <li className="list-group-item d-flex justify-content-between align-items-center" key={item.id}>
-            <div>
-              <strong>{item.name}</strong> <br />
-              {item.category} - ${item.price}
+      {items.length === 0 && <p className="text-muted">Your cart is empty.</p>}
+
+      <div className="row">
+        <div className="col-lg-8">
+
+          {items.map(item => (
+            <div 
+              key={item.id}
+              className="card mb-3 shadow-sm border-0"
+              style={{ borderRadius: "12px" }}
+            >
+              <div className="row g-0 align-items-center">
+
+                {/* IMAGE */}
+                <div className="col-md-3">
+                  <div
+                    style={{
+                      height: "150px",
+                      overflow: "hidden",
+                      borderTopLeftRadius: "12px",
+                      borderBottomLeftRadius: "12px"
+                    }}
+                  >
+                    <img
+                      src="https://picsum.photos/300/200" // TEMP IMAGE
+                      alt={item.name}
+                      className="img-fluid"
+                      style={{ height: "100%", width: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                </div>
+
+                {/* DETAILS */}
+                <div className="col-md-6 px-3 py-3">
+                  <h5 className="mb-1">{item.name}</h5>
+                  <p className="text-muted small mb-2">{item.category}</p>
+
+                  <span className="fw-bold fs-5 text-primary">
+                    ₹ {item.price}
+                  </span>
+                </div>
+
+                {/* ACTIONS */}
+                <div className="col-md-3 px-3 py-3 text-center">
+
+                  {/* Quantity */}
+                  <select
+                    className="form-select mb-2"
+                    value={item.quantity}
+                    onChange={(e) => updateQuantity(item, Number(e.target.value))}
+                    style={{ borderRadius: "8px" }}
+                  >
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+
+                  {/* Remove button */}
+                  <button
+                    className="btn btn-outline-danger w-100"
+                    style={{ borderRadius: "8px" }}
+                    onClick={() => removeItem(item.item_id)}
+                  >
+                    ❌ Remove
+                  </button>
+
+                </div>
+
+              </div>
             </div>
-            <div>
-              <input type="number" className="form-control d-inline-block me-2" style={{width: '80px'}} value={item.quantity} onChange={(e) => updateQuantity(item, Number(e.target.value))} />
-              <button className="btn btn-danger" onClick={() => removeItem(item.item_id)}>Remove</button>
+          ))}
+
+        </div>
+
+        {/* BILLING SECTION */}
+        {items.length > 0 && (
+          <div className="col-lg-4">
+            <div
+              className="card shadow-sm border-0"
+              style={{ borderRadius: "12px" }}
+            >
+              <div className="card-body">
+
+                <h5 className="fw-bold mb-3">Order Summary</h5>
+
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Items:</span>
+                  <span>{items.length}</span>
+                </div>
+
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Total Quantity:</span>
+                  <span>{items.reduce((sum, i) => sum + i.quantity, 0)}</span>
+                </div>
+
+                <hr />
+
+                <div className="d-flex justify-content-between">
+                  <h5>Total</h5>
+                  <h5 className="text-success fw-bold">₹ {total}</h5>
+                </div>
+
+                <button
+                  className="btn btn-success w-100 mt-3 btn-lg"
+                  style={{ borderRadius: "10px" }}
+                  onClick={checkout}
+                >
+                  ✅ Proceed to Checkout
+                </button>
+
+              </div>
             </div>
-          </li>
-        ))}
-      </ul>
-      {items.length > 0 && <div className="mt-3"><button className="btn btn-success" onClick={checkout}>Checkout</button></div>}
+          </div>
+        )}
+
+      </div>
+
     </div>
   )
 }
